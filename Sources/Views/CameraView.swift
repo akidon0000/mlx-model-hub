@@ -1,13 +1,12 @@
 import SwiftUI
-import PhotosUI
 import UIKit
 
-/// カメラを起動してシャッターを押すと、結果モーダルで VLM 解析結果が返る画面。
+/// カメラタブ。タブ表示時にカメラ UI を起動し、シャッターを押すと
+/// VLM 解析結果がモーダルで返ってくる。
 struct CameraView: View {
     @Environment(ModelStore.self) private var store
     @State private var prompt = "この画像には何が写っていますか？"
     @State private var showCamera = false
-    @State private var pickerItem: PhotosPickerItem?
 
     @State private var resultImage: UIImage?
     @State private var resultOutput = ""
@@ -21,57 +20,45 @@ struct CameraView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                modelStatus
+                ActiveModelMenu(modality: .vision)
 
                 TextField("画像への質問", text: $prompt, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
 
                 Spacer()
 
-                HStack(spacing: 24) {
-                    PhotosPicker(selection: $pickerItem, matching: .images) {
-                        Label("ライブラリ", systemImage: "photo.on.rectangle")
+                if !CameraPicker.isAvailable {
+                    Label("このデバイスではカメラが利用できません", systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                } else if !store.activeMatches(.vision) {
+                    Text("映像モデルを選択するとカメラを起動します")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Button {
+                        showCamera = true
+                    } label: {
+                        Label("カメラを起動", systemImage: "camera.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
                     .disabled(!canCapture)
 
-                    if CameraPicker.isAvailable {
-                        Button {
-                            showCamera = true
-                        } label: {
-                            Label("カメラを起動", systemImage: "camera.fill")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!canCapture)
-                    }
+                    Text("シャッターを押すと自動で解析が始まります")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-
-                Text("シャッターを押すと自動で解析が始まります")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
             }
             .padding()
             .navigationTitle("カメラ")
-            .toolbar { ModelSwitcher(modality: .vision) }
             .fullScreenCover(isPresented: $showCamera) {
                 CameraPicker { ui in
                     MemoryLog.log("camera.captured", "size=\(Int(ui.size.width))x\(Int(ui.size.height)) scale=\(ui.scale)")
                     handleCaptured(ui)
                 }
                 .ignoresSafeArea()
-            }
-            .onChange(of: pickerItem) { _, newItem in
-                Task {
-                    if let data = try? await newItem?.loadTransferable(type: Data.self),
-                       let ui = UIImage(data: data) {
-                        MemoryLog.log("picker.loaded", "bytes=\(data.count) size=\(Int(ui.size.width))x\(Int(ui.size.height))")
-                        handleCaptured(ui)
-                    }
-                    pickerItem = nil
-                }
             }
             .sheet(isPresented: $showResult) {
                 ResultSheet(
@@ -80,19 +67,19 @@ struct CameraView: View {
                     isGenerating: isGenerating
                 )
             }
-            .onAppear { MemoryLog.log("camera.view.appear") }
+            .onAppear {
+                MemoryLog.log("camera.view.appear")
+                autoLaunchCamera()
+            }
         }
     }
 
-    @ViewBuilder
-    private var modelStatus: some View {
-        if store.activeMatches(.vision), let active = store.activeDescriptor {
-            Label("\(active.displayName) で実行中", systemImage: "bolt.fill")
-                .font(.caption).foregroundStyle(.green)
-        } else {
-            Label("「モデル」タブで映像モデルを選択してください", systemImage: "info.circle")
-                .font(.caption).foregroundStyle(.secondary)
-        }
+    private func autoLaunchCamera() {
+        guard CameraPicker.isAvailable,
+              canCapture,
+              !showCamera,
+              !showResult else { return }
+        showCamera = true
     }
 
     private func handleCaptured(_ image: UIImage) {

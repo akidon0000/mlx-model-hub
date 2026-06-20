@@ -24,21 +24,12 @@ struct ChatView: View {
             .onTapGesture { isInputFocused = false }
             .navigationTitle("チャット")
             .scrollDismissesKeyboard(.interactively)
-            .toolbar { ModelSwitcher(modality: .language) }
         }
     }
 
-    @ViewBuilder
     private var modelStatus: some View {
-        if let active = store.activeDescriptor {
-            Label("\(active.displayName) で実行中", systemImage: "bolt.fill")
-                .font(.caption).foregroundStyle(.green)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } else {
-            Label("「モデル」タブでモデルを選択してください", systemImage: "info.circle")
-                .font(.caption).foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
+        ActiveModelMenu(modality: .language)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var conversation: some View {

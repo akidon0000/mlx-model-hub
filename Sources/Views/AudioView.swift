@@ -35,19 +35,11 @@ struct AudioView: View {
             }
             .padding()
             .navigationTitle("音声")
-            .toolbar { ModelSwitcher(modality: .audio) }
         }
     }
 
-    @ViewBuilder
     private var modelStatus: some View {
-        if store.activeMatches(.audio), let active = store.activeDescriptor {
-            Label("\(active.displayName) で実行中", systemImage: "bolt.fill")
-                .font(.caption).foregroundStyle(.green)
-        } else {
-            Label("「モデル」タブで音声モデルを選択してください", systemImage: "info.circle")
-                .font(.caption).foregroundStyle(.secondary)
-        }
+        ActiveModelMenu(modality: .audio)
     }
 
     @ViewBuilder
