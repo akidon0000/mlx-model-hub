@@ -25,6 +25,8 @@ final class ModelStore {
     private(set) var searchResults: [ModelDescriptor] = []
     private(set) var isSearching = false
     private(set) var searchError: String?
+    /// 現在の並び替え条件。
+    var sortOption: SortOption = .downloads
 
     /// 最後に選択（=ロード）したモデル id。自動ロードの優先対象にする。
     private let lastSelectedKey = "lastSelectedModelID"
@@ -70,6 +72,28 @@ final class ModelStore {
         await select(target)
     }
 
+    /// 進行中のダウンロード/ロード Task（停止用に保持）。
+    private var loadTasks: [String: Task<Void, Never>] = [:]
+
+    /// モデルの選択（DL/ロード）を開始する。停止できるよう Task で包む。
+    func startLoading(_ descriptor: ModelDescriptor) {
+        guard loadTasks[descriptor.id] == nil else { return }
+        let task = Task { [weak self] in
+            await self?.select(descriptor)
+            self?.loadTasks[descriptor.id] = nil
+        }
+        loadTasks[descriptor.id] = task
+    }
+
+    /// 進行中のダウンロードを停止する。
+    func cancelLoading(_ descriptor: ModelDescriptor) {
+        loadTasks[descriptor.id]?.cancel()
+        loadTasks[descriptor.id] = nil
+        // 途中まで取得済みなら downloaded、無ければ notDownloaded に戻す。
+        states[descriptor.id] = LocalModelStorage.isDownloaded(repo: descriptor.huggingFaceRepo)
+            ? .downloaded : .notDownloaded
+    }
+
     /// モデルを選択 → 必要ならダウンロード/ロードして active にする。
     func select(_ descriptor: ModelDescriptor) async {
         // 既存の active を解放してメモリを空ける。
@@ -90,7 +114,12 @@ final class ModelStore {
             activeDescriptor = descriptor
             states[descriptor.id] = .loaded
             lastSelectedID = descriptor.id
+        } catch is CancellationError {
+            // 停止操作。cancelLoading 側で状態を整えるためここでは何もしない。
         } catch {
+            if Task.isCancelled {
+                return
+            }
             states[descriptor.id] = .failed(message: error.localizedDescription)
         }
     }
@@ -118,7 +147,7 @@ final class ModelStore {
         searchError = nil
         defer { isSearching = false }
         do {
-            let results = try await hfService.search(query: trimmed)
+            let results = try await hfService.search(query: trimmed, sort: sortOption)
             // 取得直後にローカルの DL 済み状態を反映。
             for model in results where states[model.id] == nil {
                 if LocalModelStorage.isDownloaded(repo: model.huggingFaceRepo) {

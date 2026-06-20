@@ -7,7 +7,8 @@ struct ModelListView: View {
     @State private var searchText = ""
 
     var body: some View {
-        NavigationStack {
+        @Bindable var store = store
+        return NavigationStack {
             List {
                 if store.foundationModelsAvailable {
                     Section("OS 同梱（ダウンロード不要）") {
@@ -23,10 +24,24 @@ struct ModelListView: View {
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "Hugging Face で MLX モデルを検索"
             )
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Picker("並び替え", selection: $store.sortOption) {
+                            ForEach(SortOption.allCases) { option in
+                                Label(option.label, systemImage: option.systemImage)
+                                    .tag(option)
+                            }
+                        }
+                    } label: {
+                        Label("並び替え", systemImage: "arrow.up.arrow.down")
+                    }
+                }
+            }
             .onAppear { store.refreshInstalledStates() }
             .refreshable { store.refreshInstalledStates() }
-            // 入力が変わるたびにデバウンスして検索（空なら人気順の一覧）。
-            .task(id: searchText) {
+            // 入力 or 並び替えが変わるたびにデバウンスして検索（空なら一覧）。
+            .task(id: "\(searchText)|\(store.sortOption.rawValue)") {
                 try? await Task.sleep(for: .milliseconds(350))
                 guard !Task.isCancelled else { return }
                 await store.search(query: searchText)
@@ -45,14 +60,35 @@ struct ModelListView: View {
             Text("該当するモデルが見つかりませんでした。")
                 .foregroundStyle(.secondary)
         } else {
-            let title = searchText.trimmingCharacters(in: .whitespaces).isEmpty
-                ? "人気のモデル（mlx-community）"
-                : "検索結果（mlx-community）"
-            Section(title) {
-                ForEach(store.searchResults) { model in
-                    ModelRow(model: model)
+            // ダウンロード済みを最上部にまとめる。
+            let installed = store.searchResults.filter { isInstalled(store.state(for: $0)) }
+            if !installed.isEmpty {
+                Section("ダウンロード済み") {
+                    ForEach(installed) { model in
+                        ModelRow(model: model)
+                    }
                 }
             }
+
+            // 残りをジャンル（LLM / VLM / Voice）ごとにセクション分け。
+            let remaining = store.searchResults.filter { !isInstalled(store.state(for: $0)) }
+            ForEach(Modality.allCases) { modality in
+                let models = remaining.filter { $0.modality == modality }
+                if !models.isEmpty {
+                    Section(modality.genreLabel) {
+                        ForEach(models) { model in
+                            ModelRow(model: model)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func isInstalled(_ state: DownloadState) -> Bool {
+        switch state {
+        case .downloaded, .loaded: true
+        default: false
         }
     }
 }
@@ -76,8 +112,11 @@ private struct ModelRow: View {
             Text(model.summary)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            if let sizeText = model.approxSizeText {
-                Text(sizeText)
+
+            let metrics = [model.parameterText, model.approxSizeText, model.createdAtText]
+                .compactMap { $0 }
+            if !metrics.isEmpty {
+                Text(metrics.joined(separator: " ・ "))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -88,7 +127,7 @@ private struct ModelRow: View {
         .contentShape(Rectangle())
         .onTapGesture {
             guard !state.isBusy else { return }
-            Task { await store.select(model) }
+            store.startLoading(model)
         }
         .swipeActions(edge: .trailing) {
             if isInstalled(state) {
@@ -116,8 +155,17 @@ private struct ModelRow: View {
             Label("タップでダウンロード", systemImage: "arrow.down.circle")
                 .font(.caption).foregroundStyle(.blue)
         case let .downloading(progress):
-            ProgressView(value: progress) {
-                Text("ダウンロード中 \(Int(progress * 100))%").font(.caption2)
+            HStack {
+                ProgressView(value: progress) {
+                    Text("ダウンロード中 \(Int(progress * 100))%").font(.caption2)
+                }
+                Button {
+                    store.cancelLoading(model)
+                } label: {
+                    Image(systemName: "stop.circle.fill")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.borderless)
             }
         case .downloaded:
             Label("ダウンロード済み（タップでロード）", systemImage: "internaldrive")

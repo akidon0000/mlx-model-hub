@@ -16,6 +16,15 @@ enum Modality: String, CaseIterable, Identifiable, Codable, Sendable {
         }
     }
 
+    /// セクション見出し用のジャンル表記。
+    var genreLabel: String {
+        switch self {
+        case .language: "LLM"
+        case .vision: "VLM"
+        case .audio: "Voice"
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .language: "text.bubble"
