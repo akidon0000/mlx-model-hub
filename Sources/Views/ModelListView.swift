@@ -64,20 +64,11 @@ struct ModelListView: View {
 
     @ViewBuilder
     private var modelListContent: some View {
-        if store.isSearching && store.searchResults.isEmpty {
-            HStack { Spacer(); ProgressView("読み込み中…"); Spacer() }
-        } else if let error = store.searchError {
-            Label(error, systemImage: "wifi.exclamationmark")
-                .foregroundStyle(.red)
-        } else if store.searchResults.isEmpty {
-            Text("該当するモデルが見つかりませんでした。")
-                .foregroundStyle(.secondary)
-        } else {
-            // ジャンルトグルで絞り込み。
-            let visible = store.searchResults.filter { $0.modality == filter }
+        // ダウンロード済みは検索状態に関係なく、永続化済みの一覧から常に最上部へ。
+        let installed = store.downloadedModels(for: filter)
+        let installedIDs = Set(installed.map(\.id))
 
-            // ダウンロード済みを最上部にまとめる。
-            let installed = visible.filter { isInstalled(store.state(for: $0)) }
+        return Group {
             if !installed.isEmpty {
                 Section("ダウンロード済み") {
                     ForEach(installed) { model in
@@ -86,13 +77,23 @@ struct ModelListView: View {
                 }
             }
 
-            // 残りをジャンル（LLM / VLM / Voice）ごとにセクション分け。
-            let remaining = visible.filter { !isInstalled(store.state(for: $0)) }
-            ForEach(Modality.allCases) { modality in
-                let models = remaining.filter { $0.modality == modality }
-                if !models.isEmpty {
-                    Section(modality.genreLabel) {
-                        ForEach(models) { model in
+            // 検索結果（同ジャンル、ダウンロード済みを除く）。
+            if store.isSearching && store.searchResults.isEmpty {
+                HStack { Spacer(); ProgressView("読み込み中…"); Spacer() }
+            } else if let error = store.searchError {
+                Label(error, systemImage: "wifi.exclamationmark")
+                    .foregroundStyle(.red)
+            } else {
+                let results = store.searchResults
+                    .filter { $0.modality == filter && !installedIDs.contains($0.id) }
+                if results.isEmpty {
+                    if installed.isEmpty {
+                        Text("該当するモデルが見つかりませんでした。")
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Section(filter.genreLabel) {
+                        ForEach(results) { model in
                             ModelRow(model: model)
                         }
                     }
@@ -140,6 +141,15 @@ private struct ModelRow: View {
                     .buttonStyle(.borderless)
                     .foregroundStyle(.tint)
                 }
+                if isInstalled(state) {
+                    Button {
+                        store.uninstall(model)
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.red)
+                }
             }
             Text(model.summary)
                 .font(.caption)
@@ -154,7 +164,7 @@ private struct ModelRow: View {
             }
 
             if model.isLargeForMobile {
-                Label("3GB超：モバイルでは動作が重い/起動できない可能性があります", systemImage: "exclamationmark.triangle.fill")
+                Label("モバイルでは起動できない可能性があります", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption2)
                     .foregroundStyle(.orange)
             }
@@ -179,7 +189,7 @@ private struct ModelRow: View {
         } message: {
             let size = model.approxSizeText.map { "（\($0)）" } ?? ""
             let warning = model.isLargeForMobile
-                ? "\n\n⚠️ このモデルは 3GB を超えます。モバイル端末ではメモリ不足で動作が重い、または起動できない場合があります。"
+                ? "\n\n⚠️ モバイルでは起動できない可能性があります。"
                 : ""
             Text("\(model.displayName) のダウンロードを開始しますか？\(size)\(warning)")
         }
