@@ -117,3 +117,8 @@ struct CameraView: View {
         }
     }
 }
+
+#Preview {
+    CameraView()
+        .environment(ModelStore.preview(activeModality: .vision))
+}

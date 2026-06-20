@@ -20,3 +20,8 @@ struct RootView: View {
         .task { await store.autoLoadIfNeeded() }
     }
 }
+
+#Preview {
+    RootView()
+        .environment(ModelStore.preview())
+}

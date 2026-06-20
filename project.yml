@@ -50,3 +50,25 @@ targets:
         product: MLXVLM
       - package: MLXSwiftExamples
         product: MLXLMCommon
+
+  MLXModelHubTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: MLXModelHub
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  MLXModelHub:
+    build:
+      targets:
+        MLXModelHub: all
+        MLXModelHubTests: [test]
+    test:
+      targets:
+        - MLXModelHubTests
+      gatherCoverageData: true

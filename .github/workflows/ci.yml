@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.app || sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Resolve packages
+        run: xcodebuild -resolvePackageDependencies -project MLXModelHub.xcodeproj -scheme MLXModelHub
+
+      - name: Build & Test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project MLXModelHub.xcodeproj \
+            -scheme MLXModelHub \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            | xcbeautify || xcodebuild test \
+            -project MLXModelHub.xcodeproj \
+            -scheme MLXModelHub \
+            -destination 'platform=iOS Simulator,name=iPhone 16'

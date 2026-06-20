@@ -65,3 +65,8 @@ struct ChatView: View {
         }
     }
 }
+
+#Preview {
+    ChatView()
+        .environment(ModelStore.preview(activeModality: .language))
+}

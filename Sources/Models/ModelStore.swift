@@ -26,7 +26,7 @@ final class ModelStore {
     let foundationModelsAvailable = FoundationModelsEngine.isAvailable
 
     // MARK: - Hugging Face 検索
-    private let hfService = HFModelService()
+    private let hfService: ModelSearching
     private(set) var searchResults: [ModelDescriptor] = []
     private(set) var isSearching = false
     private(set) var searchError: String?
@@ -40,7 +40,8 @@ final class ModelStore {
         set { UserDefaults.standard.set(newValue, forKey: lastSelectedKey) }
     }
 
-    init() {
+    init(service: ModelSearching = HFModelService()) {
+        self.hfService = service
         loadInstalledModels()
         refreshInstalledStates()
     }
@@ -67,10 +68,16 @@ final class ModelStore {
     }
 
     /// 指定モダリティのダウンロード済みモデル一覧（切り替え候補）。
+    /// 判定は状態（downloaded / loaded）に基づく。
     func downloadedModels(for modality: Modality) -> [ModelDescriptor] {
         installedModels.values
             .filter { $0.modality == modality }
-            .filter { LocalModelStorage.isDownloaded(repo: $0.huggingFaceRepo) }
+            .filter {
+                switch states[$0.id] {
+                case .downloaded, .loaded: true
+                default: false
+                }
+            }
             .sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
     }
 
@@ -194,7 +201,7 @@ final class ModelStore {
         searchError = nil
         defer { isSearching = false }
         do {
-            let results = try await hfService.search(query: trimmed, sort: sortOption)
+            let results = try await hfService.search(query: trimmed, sort: sortOption, limit: 40)
             // 取得直後にローカルの DL 済み状態を反映。
             for model in results where states[model.id] == nil {
                 if LocalModelStorage.isDownloaded(repo: model.huggingFaceRepo) {
@@ -235,3 +242,21 @@ final class ModelStore {
         activeDescriptor?.modality == modality
     }
 }
+
+#if DEBUG
+extension ModelStore {
+    /// SwiftUI Preview / テスト用のサンプル状態を持つストア（ネットワーク不使用）。
+    static func preview(activeModality: Modality? = nil) -> ModelStore {
+        let store = ModelStore(service: MockModelService())
+        let samples = MockModelService.samples
+        store.searchResults = samples
+        if let modality = activeModality,
+           let sample = samples.first(where: { $0.modality == modality }) {
+            store.activeDescriptor = sample
+            store.states[sample.id] = .loaded
+            store.installedModels[sample.id] = sample
+        }
+        return store
+    }
+}
+#endif

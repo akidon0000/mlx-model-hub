@@ -12,6 +12,8 @@ struct ModelDescriptor: Identifiable, Hashable, Sendable, Codable {
     let approxSizeBytes: Int64?
     /// パラメータ総数（safetensors の total）。不明なこともある。
     var parameterCount: Int64? = nil
+    /// 量子化表記（例: "4bit" / "8bit" / "bf16"）。不明なこともある。
+    var quantization: String? = nil
     /// リリース日（HF の createdAt）。不明なこともある。
     var createdAt: Date? = nil
     let summary: String

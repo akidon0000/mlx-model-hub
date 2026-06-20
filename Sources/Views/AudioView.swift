@@ -80,3 +80,8 @@ struct AudioView: View {
         }
     }
 }
+
+#Preview {
+    AudioView()
+        .environment(ModelStore.preview(activeModality: .audio))
+}
