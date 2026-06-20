@@ -6,6 +6,7 @@ struct ChatView: View {
     @State private var input = ""
     @State private var output = ""
     @State private var isGenerating = false
+    @FocusState private var isInputFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -30,6 +31,7 @@ struct ChatView: View {
                 HStack {
                     TextField("メッセージを入力", text: $input, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
+                        .focused($isInputFocused)
                     Button {
                         Task { await send() }
                     } label: {
@@ -39,11 +41,15 @@ struct ChatView: View {
                 }
             }
             .padding()
+            .contentShape(Rectangle())   // 余白部分もタップ判定に含める
+            .onTapGesture { isInputFocused = false }
             .navigationTitle("チャット")
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 
     private func send() async {
+        isInputFocused = false
         let prompt = input
         input = ""
         output = ""

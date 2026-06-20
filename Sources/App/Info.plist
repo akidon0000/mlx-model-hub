@@ -20,6 +20,12 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSCameraUsageDescription</key>
+	<string>撮影した画像を映像モデルで解析するためにカメラを使用します。</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>録音した音声を文字起こしするためにマイクを使用します。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>解析する画像を選択するために写真ライブラリにアクセスします。</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

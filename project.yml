@@ -34,6 +34,9 @@ targets:
         # MLX のローカル推論は計算負荷が高いため、長時間処理向けに増メモリを要求
         UIRequiredDeviceCapabilities:
           - arm64
+        NSCameraUsageDescription: 撮影した画像を映像モデルで解析するためにカメラを使用します。
+        NSMicrophoneUsageDescription: 録音した音声を文字起こしするためにマイクを使用します。
+        NSPhotoLibraryUsageDescription: 解析する画像を選択するために写真ライブラリにアクセスします。
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.akidon0000.mlxmodelhub

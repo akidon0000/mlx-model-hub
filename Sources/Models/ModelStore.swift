@@ -20,8 +20,54 @@ final class ModelStore {
     /// FoundationModels（OS 同梱）が使えるか。
     let foundationModelsAvailable = FoundationModelsEngine.isAvailable
 
+    // MARK: - Hugging Face 検索
+    private let hfService = HFModelService()
+    private(set) var searchResults: [ModelDescriptor] = []
+    private(set) var isSearching = false
+    private(set) var searchError: String?
+
+    /// 最後に選択（=ロード）したモデル id。自動ロードの優先対象にする。
+    private let lastSelectedKey = "lastSelectedModelID"
+    private var lastSelectedID: String? {
+        get { UserDefaults.standard.string(forKey: lastSelectedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: lastSelectedKey) }
+    }
+
+    init() {
+        refreshInstalledStates()
+    }
+
     func state(for descriptor: ModelDescriptor) -> DownloadState {
         states[descriptor.id] ?? .notDownloaded
+    }
+
+    /// ローカルキャッシュを走査し、すでに重みが揃っているモデルを
+    /// `.downloaded` として反映する。起動時とダウンロード完了後に呼ぶ。
+    /// ロード中/ロード済みのモデルの状態は維持する。
+    func refreshInstalledStates() {
+        for descriptor in catalog {
+            if case .loaded = states[descriptor.id] { continue }
+            if states[descriptor.id]?.isBusy == true { continue }
+            if LocalModelStorage.isDownloaded(repo: descriptor.huggingFaceRepo) {
+                states[descriptor.id] = .downloaded
+            }
+        }
+    }
+
+    /// active モデルが無ければ、ダウンロード済みモデルを自動でロードする。
+    /// 優先順位: 最後に選んだモデル → カタログ順で最初のダウンロード済みモデル。
+    func autoLoadIfNeeded() async {
+        guard activeEngine == nil else { return }
+        // すでにロード処理中（DL中）なら二重起動しない。
+        guard !states.values.contains(where: { $0.isBusy }) else { return }
+
+        let downloaded = catalog.filter {
+            LocalModelStorage.isDownloaded(repo: $0.huggingFaceRepo)
+        }
+        guard !downloaded.isEmpty else { return }
+
+        let target = downloaded.first { $0.id == lastSelectedID } ?? downloaded[0]
+        await select(target)
     }
 
     /// モデルを選択 → 必要ならダウンロード/ロードして active にする。
@@ -43,9 +89,52 @@ final class ModelStore {
             activeEngine = engine
             activeDescriptor = descriptor
             states[descriptor.id] = .loaded
+            lastSelectedID = descriptor.id
         } catch {
             states[descriptor.id] = .failed(message: error.localizedDescription)
         }
+    }
+
+    /// モデルをローカルから削除（アンインストール）する。
+    /// active なら先に解放してから削除する。
+    func uninstall(_ descriptor: ModelDescriptor) {
+        if activeDescriptor?.id == descriptor.id {
+            Task { await activeEngine?.unload() }
+            activeEngine = nil
+            activeDescriptor = nil
+        }
+        do {
+            try LocalModelStorage.remove(repo: descriptor.huggingFaceRepo)
+            states[descriptor.id] = .notDownloaded
+        } catch {
+            states[descriptor.id] = .failed(message: "削除に失敗: \(error.localizedDescription)")
+        }
+    }
+
+    /// Hugging Face Hub を検索して結果を保持する。
+    func search(query: String) async {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        isSearching = true
+        searchError = nil
+        defer { isSearching = false }
+        do {
+            let results = try await hfService.search(query: trimmed)
+            // 取得直後にローカルの DL 済み状態を反映。
+            for model in results where states[model.id] == nil {
+                if LocalModelStorage.isDownloaded(repo: model.huggingFaceRepo) {
+                    states[model.id] = .downloaded
+                }
+            }
+            searchResults = results
+        } catch {
+            searchError = error.localizedDescription
+            searchResults = []
+        }
+    }
+
+    func clearSearch() {
+        searchResults = []
+        searchError = nil
     }
 
     /// 現在の言語/映像エンジンでテキスト生成。
@@ -54,5 +143,18 @@ final class ModelStore {
             return AsyncThrowingStream { $0.finish(throwing: EngineError.notLoaded) }
         }
         return engine.generate(prompt: prompt, images: images)
+    }
+
+    /// 現在の音声エンジンで書き起こし。
+    func transcribe(audio url: URL) async throws -> String {
+        guard let engine = activeEngine as? Transcribing else {
+            throw EngineError.unsupported("音声モデルを選択してください（「モデル」タブの音声）。")
+        }
+        return try await engine.transcribe(audio: url)
+    }
+
+    /// 現在の active モデルが指定モダリティかどうか。
+    func activeMatches(_ modality: Modality) -> Bool {
+        activeDescriptor?.modality == modality
     }
 }

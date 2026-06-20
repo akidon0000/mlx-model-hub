@@ -8,13 +8,14 @@ struct ModelDescriptor: Identifiable, Hashable, Sendable {
     let id: String
     let displayName: String
     let modality: Modality
-    /// 量子化後のおおよそのダウンロードサイズ（表示用）。
-    let approxSizeBytes: Int64
+    /// 量子化後のおおよそのダウンロードサイズ（表示用）。検索結果では不明なこともある。
+    let approxSizeBytes: Int64?
     let summary: String
 
     var huggingFaceRepo: String { id }
 
-    var approxSizeText: String {
-        ByteCountFormatter.string(fromByteCount: approxSizeBytes, countStyle: .file)
+    var approxSizeText: String? {
+        guard let approxSizeBytes else { return nil }
+        return ByteCountFormatter.string(fromByteCount: approxSizeBytes, countStyle: .file)
     }
 }
