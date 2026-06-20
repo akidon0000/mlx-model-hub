@@ -160,9 +160,13 @@ final class ModelStore {
 
     /// モデルを選択 → 必要ならダウンロード/ロードして active にする。
     func select(_ descriptor: ModelDescriptor) async {
-        // 既存の active を解放してメモリを空ける。
+        // 既存の active を必ず解放してから新モデルのロードに入る
+        // （メモリ上限に張り付かないよう、新旧が同時にメモリへ載らないようにする）。
         if let current = activeDescriptor, current.id != descriptor.id {
-            await activeEngine?.unload()
+            let previousEngine = activeEngine
+            activeEngine = nil
+            activeDescriptor = nil
+            await previousEngine?.unload()
             states[current.id] = .downloaded
         }
 
