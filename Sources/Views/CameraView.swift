@@ -71,6 +71,7 @@ struct CameraView: View {
                 MemoryLog.log("camera.view.appear")
                 autoLaunchCamera()
             }
+            .task { await store.autoLoadIfNeeded(for: .vision) }
         }
     }
 

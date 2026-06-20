@@ -57,6 +57,9 @@ struct ModelRow: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
+            Text(model.recommendedMemoryText)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
 
             if model.isLargeForMobile {
                 Label("モバイルでは起動できない可能性があります", systemImage: "exclamationmark.triangle.fill")
@@ -129,7 +132,7 @@ struct ModelRow: View {
                 .buttonStyle(.borderless)
             }
         case .downloaded:
-            Label("ダウンロード済み（タップでロード）", systemImage: "internaldrive")
+            Label("ダウンロード済み", systemImage: "internaldrive")
                 .font(.caption).foregroundStyle(.secondary)
         case .loaded:
             Label("ロード済み・推論可能", systemImage: "bolt.fill")

@@ -24,6 +24,7 @@ struct ChatView: View {
             .onTapGesture { isInputFocused = false }
             .navigationTitle("チャット")
             .scrollDismissesKeyboard(.interactively)
+            .task { await store.autoLoadIfNeeded(for: .language) }
         }
     }
 
@@ -94,7 +95,11 @@ struct ChatView: View {
         input = ""
 
         messages.append(ChatMessage(role: .user, text: prompt))
-        var assistant = ChatMessage(role: .assistant, text: "")
+        var assistant = ChatMessage(
+            role: .assistant,
+            text: "",
+            modelName: store.activeDescriptor?.displayName
+        )
         messages.append(assistant)
         let assistantId = assistant.id
 
@@ -120,22 +125,32 @@ struct ChatMessage: Identifiable, Equatable {
     let id = UUID()
     let role: Role
     var text: String
+    var modelName: String? = nil
 }
 
 private struct ChatBubble: View {
     let message: ChatMessage
 
     var body: some View {
-        HStack {
-            if message.role == .user { Spacer(minLength: 40) }
-            Text(message.text.isEmpty && message.role == .assistant ? "…" : message.text)
-                .textSelection(.enabled)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(bubbleColor, in: .rect(cornerRadius: 16))
-                .foregroundStyle(textColor)
-            if message.role == .assistant { Spacer(minLength: 40) }
+        VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 2) {
+            HStack {
+                if message.role == .user { Spacer(minLength: 40) }
+                Text(message.text.isEmpty && message.role == .assistant ? "…" : message.text)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(bubbleColor, in: .rect(cornerRadius: 16))
+                    .foregroundStyle(textColor)
+                if message.role == .assistant { Spacer(minLength: 40) }
+            }
+            if message.role == .assistant, let modelName = message.modelName {
+                Text(modelName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 4)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
     }
 
     private var bubbleColor: Color {

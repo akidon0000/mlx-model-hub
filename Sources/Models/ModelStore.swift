@@ -124,6 +124,18 @@ final class ModelStore {
         await select(target)
     }
 
+    /// 指定モダリティに対して active モデルが無ければ、その種別の
+    /// ダウンロード済みモデルを自動でロードする。各タブ表示時に呼ぶ。
+    func autoLoadIfNeeded(for modality: Modality) async {
+        if let active = activeDescriptor, active.modality == modality { return }
+        guard !states.values.contains(where: { $0.isBusy }) else { return }
+
+        let candidates = downloadedModels(for: modality)
+        let target = candidates.first { $0.id == lastSelectedID } ?? candidates.first
+        guard let target else { return }
+        await select(target)
+    }
+
     /// 進行中のダウンロード/ロード Task（停止用に保持）。
     private var loadTasks: [String: Task<Void, Never>] = [:]
 

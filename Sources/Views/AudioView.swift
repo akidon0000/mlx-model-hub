@@ -35,6 +35,7 @@ struct AudioView: View {
             }
             .padding()
             .navigationTitle("音声")
+            .task { await store.autoLoadIfNeeded(for: .audio) }
         }
     }
 

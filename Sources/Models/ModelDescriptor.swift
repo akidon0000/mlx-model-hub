@@ -65,4 +65,17 @@ struct ModelDescriptor: Identifiable, Hashable, Sendable, Codable {
         guard let approxSizeBytes else { return false }
         return approxSizeBytes > Self.mobileSizeLimitBytes
     }
+
+    /// 推定推奨メモリ。重みサイズ + KV キャッシュ/中間バッファぶん（おおよそ +1GB）。
+    /// HF API は推奨メモリを公開していないため重みサイズからの概算であることに注意。
+    var recommendedMemoryBytes: Int64? {
+        guard let size = approxSizeBytes, size > 0 else { return nil }
+        return size + 1_000_000_000
+    }
+
+    /// "推奨メモリ: 約 X GB" の表示。算出できなければ "不明" を返す。
+    var recommendedMemoryText: String {
+        guard let bytes = recommendedMemoryBytes else { return "推奨メモリ: 不明" }
+        return "推奨メモリ: 約 " + ByteCountFormatter.string(fromByteCount: bytes, countStyle: .memory)
+    }
 }
