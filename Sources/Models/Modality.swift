@@ -47,8 +47,11 @@ enum Modality: String, CaseIterable, Identifiable, Codable, Sendable {
                     "text-to-audio", "audio", "speech", "whisper"]) {
             return .audio
         }
+        // "vl" の部分一致は "vllm" 等で誤判定するため、限定的なキーワードに絞る。
         if matches(["image-text-to-text", "image-to-text", "visual-question-answering",
-                    "vision", "multimodal", "-vl-", "vl", "llava", "qwen2-vl"]) {
+                    "image-classification", "vision", "multimodal", "-vl-",
+                    "llava", "qwen2-vl", "qwen2.5-vl", "internvl", "minicpm-v",
+                    "smolvlm", "idefics", "pixtral", "paligemma"]) {
             return .vision
         }
         return .language

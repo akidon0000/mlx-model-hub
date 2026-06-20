@@ -153,6 +153,12 @@ private struct ModelRow: View {
                     .foregroundStyle(.tertiary)
             }
 
+            if model.isLargeForMobile {
+                Label("3GB超：モバイルでは動作が重い/起動できない可能性があります", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+
             statusControl(state)
         }
         .padding(.vertical, 4)
@@ -172,7 +178,10 @@ private struct ModelRow: View {
             Button("ダウンロード") { store.startLoading(model) }
         } message: {
             let size = model.approxSizeText.map { "（\($0)）" } ?? ""
-            Text("\(model.displayName) のダウンロードを開始しますか？\(size)")
+            let warning = model.isLargeForMobile
+                ? "\n\n⚠️ このモデルは 3GB を超えます。モバイル端末ではメモリ不足で動作が重い、または起動できない場合があります。"
+                : ""
+            Text("\(model.displayName) のダウンロードを開始しますか？\(size)\(warning)")
         }
         .swipeActions(edge: .trailing) {
             if isInstalled(state) {

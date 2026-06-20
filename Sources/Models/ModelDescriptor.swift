@@ -40,4 +40,13 @@ struct ModelDescriptor: Identifiable, Hashable, Sendable, Codable {
         guard let createdAt else { return nil }
         return createdAt.formatted(.dateTime.year().month().day())
     }
+
+    /// モバイルで快適に動かせる目安の上限（3GB）。これを超えると警告対象。
+    static let mobileSizeLimitBytes: Int64 = 3_000_000_000
+
+    /// サイズが大きく、モバイルでの動作に注意が必要か。
+    var isLargeForMobile: Bool {
+        guard let approxSizeBytes else { return false }
+        return approxSizeBytes > Self.mobileSizeLimitBytes
+    }
 }
