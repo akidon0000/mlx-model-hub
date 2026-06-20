@@ -8,8 +8,22 @@ struct ActiveModelMenu: View {
 
     var body: some View {
         let models = store.downloadedModels(for: modality)
+        let showFoundation = modality == .language && store.foundationModelsAvailable
+        let hasAny = !models.isEmpty || showFoundation
         Menu {
-            if models.isEmpty {
+            if showFoundation {
+                let fm = ModelDescriptor.foundationModels
+                Button {
+                    store.startLoading(fm)
+                } label: {
+                    if store.activeDescriptor?.id == fm.id {
+                        Label(fm.displayName, systemImage: "checkmark")
+                    } else {
+                        Label(fm.displayName, systemImage: "apple.logo")
+                    }
+                }
+            }
+            if models.isEmpty && !showFoundation {
                 Text("ダウンロード済みの\(modality.genreLabel)がありません")
             } else {
                 ForEach(models) { model in
@@ -25,9 +39,9 @@ struct ActiveModelMenu: View {
                 }
             }
         } label: {
-            label(modelsAvailable: !models.isEmpty)
+            label(modelsAvailable: hasAny)
         }
-        .disabled(models.isEmpty && store.activeDescriptor == nil)
+        .disabled(!hasAny && store.activeDescriptor == nil)
     }
 
     @ViewBuilder

@@ -46,6 +46,20 @@ struct ModelDescriptor: Identifiable, Hashable, Sendable, Codable {
     /// モバイルで快適に動かせる目安の上限（3GB）。これを超えると警告対象。
     static let mobileSizeLimitBytes: Int64 = 3_000_000_000
 
+    /// Apple Foundation Models（OS 同梱）を表す合成記述子。
+    /// HF からのダウンロード不要で、id はローカル固定。
+    static let foundationModelsID = "apple.foundation"
+    static let foundationModels = ModelDescriptor(
+        id: foundationModelsID,
+        displayName: "Apple Foundation Model",
+        modality: .language,
+        approxSizeBytes: nil,
+        parameterCount: nil,
+        quantization: nil,
+        createdAt: nil,
+        summary: "OS 同梱・ダウンロード不要"
+    )
+
     /// サイズが大きく、モバイルでの動作に注意が必要か。
     var isLargeForMobile: Bool {
         guard let approxSizeBytes else { return false }

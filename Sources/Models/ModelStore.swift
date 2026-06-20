@@ -72,6 +72,7 @@ final class ModelStore {
     func downloadedModels(for modality: Modality) -> [ModelDescriptor] {
         installedModels.values
             .filter { $0.modality == modality }
+            .filter { $0.id != ModelDescriptor.foundationModelsID } // FM は別経路で表示
             .filter {
                 switch states[$0.id] {
                 case .downloaded, .loaded: true

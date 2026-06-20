@@ -10,12 +10,6 @@ struct ModelListView: View {
         
         NavigationStack {
             List {
-                if store.foundationModelsAvailable {
-                    Section("OS 同梱（ダウンロード不要）") {
-                        Label("Apple Foundation Model", systemImage: "apple.logo")
-                            .badge("利用可能")
-                    }
-                }
                 modelListContent
             }
             .safeAreaInset(edge: .top) {
