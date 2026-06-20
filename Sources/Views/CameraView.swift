@@ -57,6 +57,7 @@ struct CameraView: View {
             }
             .padding()
             .navigationTitle("カメラ")
+            .toolbar { ModelSwitcher(modality: .vision) }
             .fullScreenCover(isPresented: $showCamera) {
                 CameraPicker { image = $0 }
                     .ignoresSafeArea()

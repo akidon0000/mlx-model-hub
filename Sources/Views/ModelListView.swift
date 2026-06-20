@@ -5,6 +5,8 @@ import SwiftUI
 struct ModelListView: View {
     @Environment(ModelStore.self) private var store
     @State private var searchText = ""
+    /// 表示するジャンル。
+    @State private var filter: Modality = .language
 
     var body: some View {
         @Bindable var store = store
@@ -17,6 +19,17 @@ struct ModelListView: View {
                     }
                 }
                 modelListContent
+            }
+            .safeAreaInset(edge: .top) {
+                Picker("ジャンル", selection: $filter) {
+                    ForEach(Modality.allCases) { modality in
+                        Text(modality.genreLabel).tag(modality)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(.bar)
             }
             .navigationTitle("モデル")
             .searchable(
@@ -60,8 +73,11 @@ struct ModelListView: View {
             Text("該当するモデルが見つかりませんでした。")
                 .foregroundStyle(.secondary)
         } else {
+            // ジャンルトグルで絞り込み。
+            let visible = store.searchResults.filter { $0.modality == filter }
+
             // ダウンロード済みを最上部にまとめる。
-            let installed = store.searchResults.filter { isInstalled(store.state(for: $0)) }
+            let installed = visible.filter { isInstalled(store.state(for: $0)) }
             if !installed.isEmpty {
                 Section("ダウンロード済み") {
                     ForEach(installed) { model in
@@ -71,7 +87,7 @@ struct ModelListView: View {
             }
 
             // 残りをジャンル（LLM / VLM / Voice）ごとにセクション分け。
-            let remaining = store.searchResults.filter { !isInstalled(store.state(for: $0)) }
+            let remaining = visible.filter { !isInstalled(store.state(for: $0)) }
             ForEach(Modality.allCases) { modality in
                 let models = remaining.filter { $0.modality == modality }
                 if !models.isEmpty {
@@ -95,7 +111,14 @@ struct ModelListView: View {
 
 private struct ModelRow: View {
     @Environment(ModelStore.self) private var store
+    @Environment(\.openURL) private var openURL
     let model: ModelDescriptor
+    @State private var showDownloadConfirm = false
+
+    /// Hugging Face のモデルページ。
+    private var webURL: URL? {
+        URL(string: "https://huggingface.co/\(model.huggingFaceRepo)")
+    }
 
     var body: some View {
         let state = store.state(for: model)
@@ -108,6 +131,15 @@ private struct ModelRow: View {
                 Text(model.displayName).font(.headline)
                 Spacer()
                 if isActive { Image(systemName: "checkmark.circle.fill").foregroundStyle(.green) }
+                if let webURL {
+                    Button {
+                        openURL(webURL)
+                    } label: {
+                        Image(systemName: "safari")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.tint)
+                }
             }
             Text(model.summary)
                 .font(.caption)
@@ -126,8 +158,21 @@ private struct ModelRow: View {
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard !state.isBusy else { return }
-            store.startLoading(model)
+            switch state {
+            case .notDownloaded, .failed:
+                showDownloadConfirm = true
+            case .downloaded:
+                store.startLoading(model)
+            default:
+                break // ロード済み / DL中は何もしない
+            }
+        }
+        .alert("ダウンロード", isPresented: $showDownloadConfirm) {
+            Button("キャンセル", role: .cancel) {}
+            Button("ダウンロード") { store.startLoading(model) }
+        } message: {
+            let size = model.approxSizeText.map { "（\($0)）" } ?? ""
+            Text("\(model.displayName) のダウンロードを開始しますか？\(size)")
         }
         .swipeActions(edge: .trailing) {
             if isInstalled(state) {
@@ -152,7 +197,7 @@ private struct ModelRow: View {
     private func statusControl(_ state: DownloadState) -> some View {
         switch state {
         case .notDownloaded:
-            Label("タップでダウンロード", systemImage: "arrow.down.circle")
+            Label("ダウンロード", systemImage: "arrow.down.circle")
                 .font(.caption).foregroundStyle(.blue)
         case let .downloading(progress):
             HStack {

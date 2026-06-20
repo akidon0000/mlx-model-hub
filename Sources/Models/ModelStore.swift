@@ -13,6 +13,11 @@ final class ModelStore {
     /// repo id -> 状態
     private(set) var states: [String: DownloadState] = [:]
 
+    /// インストール済みモデルの記述子（id -> descriptor）。
+    /// 検索しなくても各画面で切り替えられるよう永続化する。
+    private(set) var installedModels: [String: ModelDescriptor] = [:]
+    private let installedKey = "installedModels"
+
     /// 現在ロード済みで推論に使えるエンジン（モデル切替時に入れ替え）。
     private(set) var activeEngine: InferenceEngine?
     private(set) var activeDescriptor: ModelDescriptor?
@@ -36,7 +41,37 @@ final class ModelStore {
     }
 
     init() {
+        loadInstalledModels()
         refreshInstalledStates()
+    }
+
+    // MARK: - インストール済みモデルの永続化
+
+    private func loadInstalledModels() {
+        guard let data = UserDefaults.standard.data(forKey: installedKey),
+              let decoded = try? JSONDecoder().decode([String: ModelDescriptor].self, from: data)
+        else { return }
+        installedModels = decoded
+    }
+
+    private func persistInstalledModels() {
+        if let data = try? JSONEncoder().encode(installedModels) {
+            UserDefaults.standard.set(data, forKey: installedKey)
+        }
+    }
+
+    /// インストール済みとして記録する。
+    private func recordInstalled(_ descriptor: ModelDescriptor) {
+        installedModels[descriptor.id] = descriptor
+        persistInstalledModels()
+    }
+
+    /// 指定モダリティのダウンロード済みモデル一覧（切り替え候補）。
+    func downloadedModels(for modality: Modality) -> [ModelDescriptor] {
+        installedModels.values
+            .filter { $0.modality == modality }
+            .filter { LocalModelStorage.isDownloaded(repo: $0.huggingFaceRepo) }
+            .sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
     }
 
     func state(for descriptor: ModelDescriptor) -> DownloadState {
@@ -47,11 +82,20 @@ final class ModelStore {
     /// `.downloaded` として反映する。起動時とダウンロード完了後に呼ぶ。
     /// ロード中/ロード済みのモデルの状態は維持する。
     func refreshInstalledStates() {
-        for descriptor in catalog {
+        // カタログ + これまでにインストール記録したモデルを対象に走査。
+        let known = catalog + installedModels.values.filter { d in
+            !catalog.contains { $0.id == d.id }
+        }
+        for descriptor in known {
             if case .loaded = states[descriptor.id] { continue }
             if states[descriptor.id]?.isBusy == true { continue }
             if LocalModelStorage.isDownloaded(repo: descriptor.huggingFaceRepo) {
                 states[descriptor.id] = .downloaded
+                recordInstalled(descriptor)
+            } else if installedModels[descriptor.id] != nil {
+                // 記録はあるが実体が消えている → 記録も整理。
+                installedModels[descriptor.id] = nil
+                persistInstalledModels()
             }
         }
     }
@@ -114,6 +158,7 @@ final class ModelStore {
             activeDescriptor = descriptor
             states[descriptor.id] = .loaded
             lastSelectedID = descriptor.id
+            recordInstalled(descriptor)
         } catch is CancellationError {
             // 停止操作。cancelLoading 側で状態を整えるためここでは何もしない。
         } catch {
@@ -135,6 +180,8 @@ final class ModelStore {
         do {
             try LocalModelStorage.remove(repo: descriptor.huggingFaceRepo)
             states[descriptor.id] = .notDownloaded
+            installedModels[descriptor.id] = nil
+            persistInstalledModels()
         } catch {
             states[descriptor.id] = .failed(message: "削除に失敗: \(error.localizedDescription)")
         }
@@ -152,6 +199,7 @@ final class ModelStore {
             for model in results where states[model.id] == nil {
                 if LocalModelStorage.isDownloaded(repo: model.huggingFaceRepo) {
                     states[model.id] = .downloaded
+                    recordInstalled(model)
                 }
             }
             searchResults = results

@@ -45,6 +45,7 @@ struct ChatView: View {
             .onTapGesture { isInputFocused = false }
             .navigationTitle("チャット")
             .scrollDismissesKeyboard(.interactively)
+            .toolbar { ModelSwitcher(modality: .language) }
         }
     }
 

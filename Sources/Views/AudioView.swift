@@ -41,6 +41,7 @@ struct AudioView: View {
             }
             .padding()
             .navigationTitle("音声")
+            .toolbar { ModelSwitcher(modality: .audio) }
         }
     }
 
