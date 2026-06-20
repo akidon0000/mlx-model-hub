@@ -103,8 +103,10 @@ struct CameraView: View {
     }
 
     private func analyze(image: UIImage) async {
-        MemoryLog.log("analyze.start")
-        guard let data = image.jpegData(compressionQuality: 0.9) else { return }
+        MemoryLog.log("analyze.start", "src=\(Int(image.size.width))x\(Int(image.size.height))")
+        let resized = image.resizedForVLM(maxDimension: 1024)
+        MemoryLog.log("analyze.resized", "dst=\(Int(resized.size.width))x\(Int(resized.size.height))")
+        guard let data = resized.jpegData(compressionQuality: 0.9) else { return }
         MemoryLog.log("analyze.jpeg", "bytes=\(data.count)")
         isGenerating = true
         defer {
