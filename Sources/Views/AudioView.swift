@@ -1,43 +1,37 @@
 import SwiftUI
 
-/// 音声を録音し、ASR（音声モデル）で文字起こしする画面。
+/// マイクボタン長押し中だけ録音→離すと文字起こしが走る画面。
 struct AudioView: View {
     @Environment(ModelStore.self) private var store
     @State private var recorder = AudioRecorder()
     @State private var transcript = ""
     @State private var isTranscribing = false
+    @State private var isPressing = false
+
+    private var canRecord: Bool {
+        store.activeMatches(.audio) && !isTranscribing
+    }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
+            VStack(spacing: 24) {
                 modelStatus
 
-                Button {
-                    Task { await toggleRecording() }
-                } label: {
-                    Label(
-                        recorder.isRecording ? "録音停止" : "録音開始",
-                        systemImage: recorder.isRecording ? "stop.circle.fill" : "mic.circle.fill"
-                    )
-                    .font(.title2)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(recorder.isRecording ? .red : .accentColor)
-
-                if isTranscribing {
-                    ProgressView("文字起こし中…")
-                }
-
                 ScrollView {
-                    Text(transcript.isEmpty ? "書き起こし結果がここに表示されます" : transcript)
+                    Text(transcript.isEmpty ? "ボタンを長押ししている間だけ録音し、離すと文字起こしされます" : transcript)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .foregroundStyle(transcript.isEmpty ? .secondary : .primary)
                         .textSelection(.enabled)
                         .padding()
                 }
                 .background(.quaternary.opacity(0.3), in: .rect(cornerRadius: 12))
+
+                Spacer()
+
+                statusText
+
+                micButton
+                    .padding(.bottom, 24)
             }
             .padding()
             .navigationTitle("音声")
@@ -56,17 +50,67 @@ struct AudioView: View {
         }
     }
 
-    private func toggleRecording() async {
-        if recorder.isRecording {
-            recorder.stop()
-            await transcribe()
+    @ViewBuilder
+    private var statusText: some View {
+        if isTranscribing {
+            HStack(spacing: 8) {
+                ProgressView()
+                Text("文字起こし中…").foregroundStyle(.secondary)
+            }
+        } else if recorder.isRecording {
+            Label("録音中", systemImage: "waveform")
+                .foregroundStyle(.red)
         } else {
+            Text("長押しで録音").foregroundStyle(.secondary)
+        }
+    }
+
+    private var micButton: some View {
+        ZStack {
+            Circle()
+                .fill(recorder.isRecording ? Color.red : Color.accentColor)
+                .frame(width: 96, height: 96)
+                .scaleEffect(recorder.isRecording ? 1.1 : 1.0)
+                .opacity(canRecord ? 1.0 : 0.4)
+                .animation(.easeInOut(duration: 0.15), value: recorder.isRecording)
+
+            Image(systemName: "mic.fill")
+                .font(.system(size: 36, weight: .bold))
+                .foregroundStyle(.white)
+        }
+        .contentShape(Circle())
+        .onLongPressGesture(
+            minimumDuration: 60,
+            maximumDistance: .infinity,
+            perform: { },
+            onPressingChanged: { pressing in
+                guard canRecord else { return }
+                if pressing {
+                    startRecording()
+                } else {
+                    stopAndTranscribe()
+                }
+            }
+        )
+        .disabled(!canRecord)
+    }
+
+    private func startRecording() {
+        guard !recorder.isRecording else { return }
+        transcript = ""
+        Task {
             do {
                 try await recorder.start()
             } catch {
                 transcript = "エラー: \(error.localizedDescription)"
             }
         }
+    }
+
+    private func stopAndTranscribe() {
+        guard recorder.isRecording else { return }
+        recorder.stop()
+        Task { await transcribe() }
     }
 
     private func transcribe() async {
