@@ -1,0 +1,49 @@
+name: MLXModelHub
+options:
+  bundleIdPrefix: com.akidon0000.mlxmodelhub
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+
+packages:
+  MLXSwiftExamples:
+    url: https://github.com/ml-explore/mlx-swift-examples
+    # main は LLM/VLM ライブラリ分離の再構成中のため、製品が揃うタグに固定。
+    exactVersion: "2.29.1"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+targets:
+  MLXModelHub:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    info:
+      path: Sources/App/Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleDisplayName: MLX Model Hub
+        # MLX のローカル推論は計算負荷が高いため、長時間処理向けに増メモリを要求
+        UIRequiredDeviceCapabilities:
+          - arm64
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.akidon0000.mlxmodelhub
+        TARGETED_DEVICE_FAMILY: "1,2" # iPhone + iPad
+        # MLX はメモリを多く使うため Increased Memory Limit entitlement を推奨
+        # （実機での大きめモデル実行時。必要に応じて .entitlements を追加）
+    dependencies:
+      - package: MLXSwiftExamples
+        product: MLXLLM
+      - package: MLXSwiftExamples
+        product: MLXVLM
+      - package: MLXSwiftExamples
+        product: MLXLMCommon

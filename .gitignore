@@ -14,3 +14,15 @@
 node_modules/
 dist/
 build/
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+*.xcuserstate
+.swiftpm/
+
+# MLX / Hugging Face のダウンロードキャッシュ（端末ローカル）
+huggingface/
+*.safetensors
