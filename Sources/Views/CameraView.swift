@@ -59,17 +59,22 @@ struct CameraView: View {
             .navigationTitle("カメラ")
             .toolbar { ModelSwitcher(modality: .vision) }
             .fullScreenCover(isPresented: $showCamera) {
-                CameraPicker { image = $0 }
+                CameraPicker { ui in
+                    MemoryLog.log("camera.captured", "size=\(Int(ui.size.width))x\(Int(ui.size.height)) scale=\(ui.scale)")
+                    image = ui
+                }
                     .ignoresSafeArea()
             }
             .onChange(of: pickerItem) { _, newItem in
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
                        let ui = UIImage(data: data) {
+                        MemoryLog.log("picker.loaded", "bytes=\(data.count) size=\(Int(ui.size.width))x\(Int(ui.size.height))")
                         image = ui
                     }
                 }
             }
+            .onAppear { MemoryLog.log("camera.view.appear") }
         }
     }
 
@@ -104,16 +109,25 @@ struct CameraView: View {
     }
 
     private func analyze() async {
+        MemoryLog.log("analyze.start")
         guard let image, let data = image.jpegData(compressionQuality: 0.9) else { return }
+        MemoryLog.log("analyze.jpeg", "bytes=\(data.count)")
         output = ""
         isGenerating = true
-        defer { isGenerating = false }
+        defer {
+            isGenerating = false
+            MemoryLog.log("analyze.end")
+        }
         do {
+            var chunks = 0
             for try await chunk in store.generate(prompt: prompt, images: [data]) {
                 output += chunk
+                chunks += 1
+                if chunks % 16 == 0 { MemoryLog.log("analyze.streaming", "chunks=\(chunks)") }
             }
         } catch {
             output = "エラー: \(error.localizedDescription)"
+            MemoryLog.log("analyze.error", error.localizedDescription)
         }
     }
 }
