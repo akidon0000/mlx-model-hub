@@ -35,7 +35,7 @@ struct HFModelService: ModelSearching {
     /// - Parameters:
     ///   - query: 検索語（空なら人気順の一覧）。
     ///   - limit: 取得件数。
-    func search(query: String, sort: SortOption = .downloads, limit: Int = 40) async throws -> [ModelDescriptor] {
+    func search(query: String, sort: SortOption = .downloads, limit: Int = 200) async throws -> [ModelDescriptor] {
         var components = URLComponents(string: "https://huggingface.co/api/models")!
         // 名前順はサーバ側に無いので、その場合はダウンロード数で取得してから並べ替える。
         let apiSort = sort.apiKey ?? "downloads"
@@ -84,13 +84,20 @@ struct HFModelService: ModelSearching {
             )
         }
 
+        // モバイル実行不可なサイズは一覧から除外。
+        // 推定不能（nil/0）のものは判定保留として残す。
+        let filtered = descriptors.filter { d in
+            guard let size = d.approxSizeBytes, size > 0 else { return true }
+            return size <= ModelDescriptor.mobileSizeLimitBytes
+        }
+
         // 名前順だけサーバが対応しないのでクライアントで並べ替える。
         if sort == .name {
-            return descriptors.sorted {
+            return filtered.sorted {
                 $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
             }
         }
-        return descriptors
+        return filtered
     }
 
     private func summary(downloads: Int?, likes: Int?, tag: String?) -> String {

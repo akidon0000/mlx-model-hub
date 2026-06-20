@@ -201,7 +201,7 @@ final class ModelStore {
         searchError = nil
         defer { isSearching = false }
         do {
-            let results = try await hfService.search(query: trimmed, sort: sortOption, limit: 40)
+            let results = try await hfService.search(query: trimmed, sort: sortOption, limit: 200)
             // 取得直後にローカルの DL 済み状態を反映。
             for model in results where states[model.id] == nil {
                 if LocalModelStorage.isDownloaded(repo: model.huggingFaceRepo) {
