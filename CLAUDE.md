@@ -70,3 +70,12 @@ Tests/         Swift Testing（ロジックのユニットテスト）
 
 レビューやユーザーからの指摘・学びは [LEARNINGS.md](LEARNINGS.md) に追記して再発を防ぐ。
 ループ中に同じ誤りを繰り返さないため、**作業前に LEARNINGS.md を読む**こと。
+
+ユーザーから恒久的な運用指示・方針（コミット権限、規約、好み、認証情報など）を受けた場合は、
+セッション内の記憶ではなく **CLAUDE.md か LEARNINGS.md にコミットして残す**こと。
+個別事象の学びは LEARNINGS.md、開発ループ全体に関わるルールは CLAUDE.md に書く。
+
+## 運用ルール（ユーザー指示由来）
+
+- main への直接コミットは許可されている。変更ごとに都度コミットしてよい（push はユーザー指示時のみ）。
+- 実機ビルドの Team は `XSC9AJPSP3`（個人）。`project.yml` の `DEVELOPMENT_TEAM` で固定済み。
