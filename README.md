@@ -1,56 +1,109 @@
-# mlx-model-hub
+<p align="center">
+  <img src="assets/banner.svg" alt="MLX Model Hub" width="100%"/>
+</p>
 
-MLX を使って、言語・音声・映像の様々なローカルモデルを iOS / iPadOS 上で動かすアプリ。
-複数モデルを選んで切り替えられ、アプリ内から簡単にダウンロードできる。Apple の
-FoundationModels（OS 同梱のオンデバイス LLM）にも対応。
+<h1 align="center">MLX Model Hub</h1>
 
-## 特徴
+<p align="center">
+  <strong>Run local LLM · VLM · ASR models on your iPhone with MLX.</strong><br/>
+  A SwiftUI iOS/iPadOS app that searches, downloads, and switches between on-device models — language, vision, and audio — powered by Apple <a href="https://github.com/ml-explore/mlx-swift-examples">MLX</a> and Apple FoundationModels.
+</p>
 
-- **マルチモダリティ**: 言語（LLM）・映像（VLM）・音声（ASR）を 1 アプリで。
-- **複数モデルの選択切替**: カタログから選ぶだけでダウンロード → ロード → 推論。
-- **アプリ内ダウンロード**: Hugging Face Hub（`mlx-community`）から自動取得。
-- **FoundationModels**: 対応端末では OS 同梱モデルをダウンロード不要で利用。
+<p align="center">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-iOS%2026%2B-1B1B1F?style=flat-square&logo=apple"/>
+  <img alt="Language" src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white"/>
+  <img alt="UI" src="https://img.shields.io/badge/SwiftUI-MLX-1FA6B8?style=flat-square"/>
+  <img alt="License" src="https://img.shields.io/badge/License-MIT-10262E?style=flat-square"/>
+  <img alt="PRs" src="https://img.shields.io/badge/PRs-welcome-38D6C8?style=flat-square"/>
+  <a href="https://github.com/akidon0000/mlx-model-hub/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/akidon0000/mlx-model-hub/actions/workflows/ci.yml/badge.svg"/></a>
+</p>
 
-## 必要環境
+<p align="center">
+  <a href="README.md">English</a> ·
+  <a href="README.ja.md">日本語</a>
+</p>
 
-- Xcode 26.3 以上（Xcode 27 でも可）
-- iOS 26.0 以上の実機（Apple Silicon）。MLX は GPU/メモリを使うため、
-  シミュレータより実機推奨。
+---
 
-## セットアップ
+<p align="center">
+  <img src="assets/screenshot.svg" alt="Model list screenshot" width="320"/>
+</p>
+
+## ✨ Why?
+
+Apple Silicon iPhones can run surprisingly capable models entirely on-device, but wiring up MLX, downloading weights from Hugging Face, and juggling multiple modalities is fiddly. **MLX Model Hub** is a single app that does all of it: browse a catalog, tap to download from `mlx-community`, load, and run inference — for text (LLM), images (VLM), and speech (ASR) — and fall back to Apple's built-in FoundationModels where available. Everything runs locally; nothing leaves the device.
+
+## 🚀 Features
+
+- 🧩 **Multi-modal** — language (LLM), vision (VLM), and audio (ASR) in one app.
+- 🔀 **Switch models on the fly** — pick from a catalog; download → load → infer.
+- ⬇️ **In-app downloads** — fetched automatically from Hugging Face Hub (`mlx-community`).
+- 🍎 **FoundationModels** — use Apple's on-device LLM with no download on supported devices.
+- 🧮 **Smart size estimates** — parameters × quantization bits, since the HF list API can't expand storage.
+- 🧪 **Testable core** — pure heuristics and a mock model service keep unit tests network-free.
+
+## 🧰 Requirements
+
+- iOS **26.0+** on a physical Apple Silicon device (MLX uses the GPU/Neural Engine; the simulator is limited).
+- Xcode **26.3+** (Xcode 27 also works), Swift **6.0**.
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the project from `project.yml`.
+
+## 📦 Setup
 
 ```bash
-# プロジェクト生成（project.yml から .xcodeproj を作る）
-brew install xcodegen   # 未インストールの場合
-xcodegen generate
+git clone https://github.com/akidon0000/mlx-model-hub.git
+cd mlx-model-hub
+
+brew install xcodegen   # if not installed
+make generate           # project.yml → MLXModelHub.xcodeproj
 open MLXModelHub.xcodeproj
 ```
 
-Xcode で署名チーム（DEVELOPMENT_TEAM）を設定してから実機へ。
+Set your signing team (`DEVELOPMENT_TEAM`) in Xcode, then run on a real device.
 
-## 構成
+> [!NOTE]
+> `mlx-swift-examples` is pinned to `exactVersion: 2.29.1` on purpose — `main` is mid-refactor and doesn't expose the `MLXLLM` / `MLXVLM` products yet. Models are cached under `Caches/models/<repo>` (the same location as MLX's `defaultHubApi`).
+
+### Dev loop
+
+```bash
+make build   # build for the iOS simulator
+make test    # run unit tests
+make ci      # generate → build → test (same as CI)
+```
+
+## 🏗 Architecture
 
 ```
 Sources/
-  App/         アプリエントリ・Info.plist
-  Models/      モダリティ定義・モデルカタログ・状態ストア(ModelStore)
-  Download/    ダウンロード/ロード状態
-  Inference/   推論エンジン（Language / Vision / Audio / FoundationModels）
-  Views/       SwiftUI 画面（モデル一覧・チャット）
+  App/         App entry · Info.plist
+  Models/      Modality · ModelDescriptor · ModelCatalog · ModelStore ·
+               HFModelService (live search) · MockModelService (preview/tests) ·
+               ModelHeuristics (pure: quantization/params/size) · SortOption
+  Download/    LocalModelStorage · DownloadState
+  Inference/   Language (MLXLLM) · Vision (MLXVLM) · Audio (stub) · FoundationModels
+  Views/       RootView · ChatView · CameraView · AudioView · ModelListView · ModelRow
+Tests/         Swift Testing (logic unit tests)
 ```
 
-## モデルの追加
+- State lives in `@MainActor @Observable ModelStore` (search, download/load state, active model).
+- Search goes through a `ModelSearching` protocol — live `HFModelService`, or network-free `MockModelService` for previews/tests.
+- Estimation logic is concentrated in the side-effect-free `ModelHeuristics`.
 
-`Sources/Models/ModelCatalog.swift` に `ModelDescriptor` を 1 行足すだけで
-一覧に並び、ダウンロード対象になる。`id` は Hugging Face の repo id。
+## ➕ Adding a model
 
-## 既知の未実装 / TODO
+Add one `ModelDescriptor` to [`Sources/Models/ModelCatalog.swift`](Sources/Models/ModelCatalog.swift) and it shows up in the list and becomes downloadable. `id` is the Hugging Face repo id.
 
-- 音声（Whisper）の実推論は未実装。`AudioEngine` に WhisperKit などを統合予定。
-- mlx-swift-examples の API は更新が速いため、`generate` / `loadContainer` の
-  シグネチャはビルド時に取得版へ合わせる必要がある場合あり。
-- 大きめモデル向けの Increased Memory Limit entitlement（実機）。
+## 🗺 Roadmap / Known gaps
 
-## ライセンス
+- Real audio (Whisper) inference is not wired up yet — `AudioEngine` is a stub pending WhisperKit integration.
+- `mlx-swift-examples` APIs move fast; `generate` / `loadContainer` signatures may need to track the pinned version.
+- Increased Memory Limit entitlement for larger models on device.
 
-MIT
+## 🤝 Contributing
+
+PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for the dev loop, coding conventions, and the PR checklist.
+
+## 📄 License
+
+[MIT](LICENSE) © akidon0000

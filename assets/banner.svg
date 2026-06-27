@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F1B24"/>
+      <stop offset="1" stop-color="#12303A"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#38D6C8"/>
+      <stop offset="1" stop-color="#1FA6B8"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="360" fill="url(#bg)"/>
+
+  <!-- Logo: stacked modality layers -->
+  <g transform="translate(120,90)">
+    <rect width="180" height="180" rx="40" fill="url(#accent)"/>
+    <g transform="translate(52,52)" fill="#0F1B24">
+      <!-- text.bubble (language) -->
+      <rect x="0" y="0" width="40" height="22" rx="8"/>
+      <path d="M8 22 l0 12 l12 -12 z"/>
+      <!-- photo (vision) -->
+      <rect x="0" y="34" width="40" height="20" rx="5" fill="none" stroke="#0F1B24" stroke-width="4"/>
+      <circle cx="11" cy="42" r="3"/>
+      <path d="M4 52 l10 -9 l8 7 l8 -10 l6 8" fill="none" stroke="#0F1B24" stroke-width="3"/>
+      <!-- waveform (audio) -->
+      <g transform="translate(0,64)">
+        <rect x="2"  y="6"  width="3" height="6"  rx="1.5"/>
+        <rect x="9"  y="2"  width="3" height="14" rx="1.5"/>
+        <rect x="16" y="8"  width="3" height="3"  rx="1.5"/>
+        <rect x="23" y="0"  width="3" height="18" rx="1.5"/>
+        <rect x="30" y="5"  width="3" height="8"  rx="1.5"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Title block -->
+  <g transform="translate(340,140)" font-family="-apple-system, SF Pro Display, Helvetica, sans-serif" fill="#FFFFFF">
+    <text font-size="60" font-weight="700">MLX Model Hub</text>
+    <text y="46" font-size="22" fill="#A9DDD8">Run local LLM · VLM · ASR models on your iPhone with MLX.</text>
+    <g transform="translate(0,92)">
+      <rect width="150" height="32" rx="16" fill="#10262E" stroke="#1FA6B8" stroke-width="1"/>
+      <text x="75" y="21" font-size="14" text-anchor="middle" fill="#7FD6CE">iOS 26+ · SwiftUI</text>
+      <rect x="166" width="120" height="32" rx="16" fill="#10262E" stroke="#1FA6B8" stroke-width="1"/>
+      <text x="226" y="21" font-size="14" text-anchor="middle" fill="#7FD6CE">MIT License</text>
+      <rect x="302" width="130" height="32" rx="16" fill="#10262E" stroke="#1FA6B8" stroke-width="1"/>
+      <text x="367" y="21" font-size="14" text-anchor="middle" fill="#7FD6CE">PRs welcome</text>
+    </g>
+  </g>
+</svg>

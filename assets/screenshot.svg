@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" width="760" height="520" font-family="-apple-system, SF Pro Display, Helvetica, sans-serif">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#13262E"/>
+      <stop offset="1" stop-color="#0F1B24"/>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+  </defs>
+  <rect width="760" height="520" fill="url(#wall)"/>
+
+  <!-- Phone frame -->
+  <g transform="translate(280,30)">
+    <rect x="-6" y="-6" width="212" height="472" rx="46" fill="#000" opacity="0.4" filter="url(#sh)"/>
+    <rect width="200" height="460" rx="40" fill="#0B141A" stroke="#2A3B44" stroke-width="2"/>
+    <rect x="10" y="10" width="180" height="440" rx="32" fill="#101D26"/>
+
+    <!-- notch -->
+    <rect x="74" y="16" width="52" height="14" rx="7" fill="#000"/>
+
+    <!-- Nav title -->
+    <text x="20" y="56" font-size="17" font-weight="700" fill="#FFFFFF">Models</text>
+    <g transform="translate(160,46)" fill="#38D6C8"><rect width="14" height="3" rx="1.5"/><rect y="5" width="14" height="3" rx="1.5"/><rect y="10" width="14" height="3" rx="1.5"/></g>
+
+    <!-- Section: LLM -->
+    <text x="20" y="84" font-size="11" font-weight="600" fill="#7FD6CE">LLM</text>
+    <g transform="translate(14,92)">
+      <rect width="172" height="44" rx="10" fill="#16242C"/>
+      <g transform="translate(12,14)" fill="#38D6C8"><rect width="18" height="11" rx="3"/><path d="M3 11 l0 6 l6 -6 z"/></g>
+      <text x="42" y="20" font-size="12" font-weight="600" fill="#FFFFFF">Qwen2.5-1.5B</text>
+      <text x="42" y="34" font-size="9" fill="#88A0A8">mlx-community · 1.5B · 4bit</text>
+      <g transform="translate(150,15)"><circle r="9" fill="none" stroke="#2A3B44" stroke-width="3"/><path d="M0 -9 a9 9 0 0 1 7 4" fill="none" stroke="#38D6C8" stroke-width="3"/></g>
+    </g>
+    <g transform="translate(14,142)">
+      <rect width="172" height="44" rx="10" fill="#16242C"/>
+      <g transform="translate(12,14)" fill="#38D6C8"><rect width="18" height="11" rx="3"/><path d="M3 11 l0 6 l6 -6 z"/></g>
+      <text x="42" y="20" font-size="12" font-weight="600" fill="#FFFFFF">Apple FoundationModels</text>
+      <text x="42" y="34" font-size="9" fill="#88A0A8">on-device · no download</text>
+      <text x="150" y="28" font-size="16" fill="#3FD06F">✓</text>
+    </g>
+
+    <!-- Section: VLM -->
+    <text x="20" y="206" font-size="11" font-weight="600" fill="#7FD6CE">VLM</text>
+    <g transform="translate(14,214)">
+      <rect width="172" height="44" rx="10" fill="#16242C"/>
+      <g transform="translate(12,15)"><rect width="18" height="13" rx="3" fill="none" stroke="#38D6C8" stroke-width="2.5"/><path d="M2 26 l6 -6 l5 4 l5 -6" fill="none" stroke="#38D6C8" stroke-width="2.5" transform="translate(0,-1)"/></g>
+      <text x="42" y="20" font-size="12" font-weight="600" fill="#FFFFFF">SmolVLM-Instruct</text>
+      <text x="42" y="34" font-size="9" fill="#88A0A8">mlx-community · vision</text>
+      <text x="138" y="28" font-size="10" fill="#38D6C8">↓ Get</text>
+    </g>
+
+    <!-- Section: Voice -->
+    <text x="20" y="278" font-size="11" font-weight="600" fill="#7FD6CE">Voice</text>
+    <g transform="translate(14,286)">
+      <rect width="172" height="44" rx="10" fill="#16242C"/>
+      <g transform="translate(14,18)" fill="#38D6C8"><rect x="0" y="4" width="3" height="8" rx="1.5"/><rect x="6" y="0" width="3" height="16" rx="1.5"/><rect x="12" y="6" width="3" height="4" rx="1.5"/></g>
+      <text x="42" y="20" font-size="12" font-weight="600" fill="#FFFFFF">Whisper-tiny</text>
+      <text x="42" y="34" font-size="9" fill="#88A0A8">ASR · transcription</text>
+      <text x="138" y="28" font-size="10" fill="#38D6C8">↓ Get</text>
+    </g>
+
+    <!-- Tab bar -->
+    <line x1="10" y1="404" x2="190" y2="404" stroke="#1E2D35" stroke-width="1"/>
+    <g transform="translate(34,416)" text-anchor="middle" font-size="9">
+      <g fill="#38D6C8"><rect x="-7" y="0" width="14" height="9" rx="2"/><text y="22">Models</text></g>
+      <g transform="translate(66,0)" fill="#5E7178"><circle cx="0" cy="5" r="6" fill="none" stroke="#5E7178" stroke-width="2"/><text y="22">Chat</text></g>
+      <g transform="translate(132,0)" fill="#5E7178"><rect x="-6" y="1" width="12" height="8" rx="3" fill="none" stroke="#5E7178" stroke-width="2"/><text y="22">Settings</text></g>
+    </g>
+  </g>
+</svg>
